@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""
 odds_monitor.py - samodejno spremlja kvote za vse tekme izbranih lig in te
 obvesti, ko se kvota premakne za X % ali več (privzeto 10 %) od zadnjega preverjanja.
 

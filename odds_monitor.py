@@ -153,7 +153,25 @@ def main():
     p.add_argument("--interval", type=int, default=600, help="sekund med krogi (600 = 10 min)")
     p.add_argument("--state", default="odds_state.json")
     p.add_argument("--once", action="store_true")
+    p.add_argument("--test", action="store_true",
+                   help="pošlje testno Telegram sporočilo in konča")
     args = p.parse_args()
+
+    if args.test:
+        token = os.environ.get("TELEGRAM_BOT_TOKEN")
+        chat = os.environ.get("TELEGRAM_CHAT_ID")
+        if not token or not chat:
+            sys.exit("NAPAKA: manjka TELEGRAM_BOT_TOKEN ali TELEGRAM_CHAT_ID v Secrets.")
+        data = urllib.parse.urlencode({
+            "chat_id": chat,
+            "text": "Testno obvestilo: povezava s Telegramom deluje."}).encode()
+        try:
+            urllib.request.urlopen(
+                f"https://api.telegram.org/bot{token}/sendMessage", data=data, timeout=15)
+        except Exception as e:
+            sys.exit(f"NAPAKA pri pošiljanju na Telegram: {e}")
+        print("Testno sporočilo poslano.")
+        return
 
     key = os.environ.get("ODDS_API_KEY")
     if not key:

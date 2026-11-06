@@ -27,5 +27,5 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: >
-          python odds_monitor.py --once --threshold 10
+          python odds_monitor.py --once --threshold 15
           --sports soccer_epl soccer_spain_la_liga soccer_italy_serie_a soccer_germany_bundesliga

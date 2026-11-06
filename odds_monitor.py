@@ -5,20 +5,12 @@ obvesti, ko se kvota premakne za X % ali več (privzeto 10 %) od zadnjega prever
 
 Ničesar ne vnašaš. Samo zaženeš in pustiš teči.
 
-Priprava (enkrat):
-  1. API ključ: https://the-odds-api.com
-  2. (neobvezno) Telegram: v Telegramu odpri @BotFather -> /newbot -> dobiš token.
-     Botu pošlji sporočilo, nato odpri
-     https://api.telegram.org/bot<TOKEN>/getUpdates  in poišči "chat":{"id": ...}
-  3. export ODDS_API_KEY="..."
-     export TELEGRAM_BOT_TOKEN="..."   (neobvezno)
-     export TELEGRAM_CHAT_ID="..."     (neobvezno)
-
 Zagon:
   python odds_monitor.py                      # vsakih 10 min, privzete lige
   python odds_monitor.py --threshold 15 --interval 900
   python odds_monitor.py --sports soccer_epl basketball_nba
   python odds_monitor.py --once               # en krog (za cron / GitHub Actions)
+  python odds_monitor.py --test               # testno Telegram sporočilo
 
 Stanje se shranjuje v odds_state.json, zato po ponovnem zagonu ne začne iz nič.
 Opozorilo: vsak klic porabi kredite API-ja (število lig x marketov x regij).
@@ -108,93 +100,4 @@ def run_round(args, key, token, chat, state):
             print(f"[{now}] napaka pri {sport}: {e}", file=sys.stderr)
             # ohrani staro stanje te lige, da ne izgubimo primerjave
             for k, v in state.items():
-                if v.get("sport") == sport:
-                    new_state[k] = v
-            continue
-        print(f"[{now}] {sport}: {len(events)} tekem | preostalih kreditov: {remaining}",
-              flush=True)
-        for ev in events:
-            title = f'{ev["home_team"]} - {ev["away_team"]}'
-            for mk in args.markets.split(","):
-                cur = reference_odds(ev, mk, args.book)
-                sk = f'{ev["id"]}|{mk}'
-                old = state.get(sk, {}).get("odds")
-                new_state[sk] = {"sport": sport, "odds": cur}
-                if not old:
-                    continue
-                moves = []
-                for outcome, price in cur.items():
-                    p0 = old.get(outcome)
-                    if not p0:
-                        continue
-                    change = (price / p0 - 1) * 100
-                    if abs(change) >= args.threshold:
-                        arrow = "kvota PADA (denar vstopa)" if change < 0 else "kvota RASTE"
-                        moves.append(f"  {outcome}: {p0:.2f} -> {price:.2f} "
-                                     f"({change:+.1f} %) {arrow}")
-                if moves:
-                    alerts += 1
-                    when = ev.get("commence_time", "")[:16].replace("T", " ")
-                    notify(f"KVOTA SE PREMIKA\n{title}\n{sport} | {mk} | start {when} UTC\n"
-                           + "\n".join(moves), token, chat)
-    return new_state, alerts
-
-
-def main():
-    p = argparse.ArgumentParser(description=__doc__,
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--sports", nargs="+", default=DEFAULT_SPORTS)
-    p.add_argument("--markets", default="h2h", help="h2h, totals, spreads (z vejico)")
-    p.add_argument("--regions", default="eu")
-    p.add_argument("--book", default="pinnacle",
-                   help="referenčna stavnica; če je ni, se vzame mediana vseh")
-    p.add_argument("--threshold", type=float, default=10.0,
-                   help="premik kvote v %% od zadnjega preverjanja (privzeto 10)")
-    p.add_argument("--interval", type=int, default=600, help="sekund med krogi (600 = 10 min)")
-    p.add_argument("--state", default="odds_state.json")
-    p.add_argument("--once", action="store_true")
-    p.add_argument("--test", action="store_true",
-                   help="pošlje testno Telegram sporočilo in konča")
-    args = p.parse_args()
-
-    if args.test:
-        token = os.environ.get("TELEGRAM_BOT_TOKEN")
-        chat = os.environ.get("TELEGRAM_CHAT_ID")
-        if not token or not chat:
-            sys.exit("NAPAKA: manjka TELEGRAM_BOT_TOKEN ali TELEGRAM_CHAT_ID v Secrets.")
-        data = urllib.parse.urlencode({
-            "chat_id": chat,
-            "text": "Testno obvestilo: povezava s Telegramom deluje."}).encode()
-        try:
-            urllib.request.urlopen(
-                f"https://api.telegram.org/bot{token}/sendMessage", data=data, timeout=15)
-        except Exception as e:
-            sys.exit(f"NAPAKA pri pošiljanju na Telegram: {e}")
-        print("Testno sporočilo poslano.")
-        return
-
-    key = os.environ.get("ODDS_API_KEY")
-    if not key:
-        sys.exit("Manjka ODDS_API_KEY (export ODDS_API_KEY=...).")
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat = os.environ.get("TELEGRAM_CHAT_ID")
-
-    calls = len(args.sports) * len(args.markets.split(",")) * len(args.regions.split(","))
-    print(f"Spremljam {len(args.sports)} lig, prag {args.threshold} %, "
-          f"interval {args.interval}s. Poraba: ~{calls} kreditov na krog "
-          f"(~{calls * 86400 // args.interval} na dan).", flush=True)
-
-    state = load_state(args.state)
-    while True:
-        state, alerts = run_round(args, key, token, chat, state)
-        save_state(args.state, state)
-        if args.once:
-            break
-        time.sleep(args.interval)
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\nKonec.")
+                if
